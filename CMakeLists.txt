@@ -14,8 +14,10 @@ add_definitions(-Wall -Wextra -Werror)
 
 include_directories(
   ${GSTREAMER_INCLUDE_DIRS}
+  ${PROJECT_SOURCE_DIR}
 )
 add_executable(streamplay
+  internetradio.cpp
   streamplay.cpp
 )
 
