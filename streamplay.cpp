@@ -2,8 +2,6 @@
 #include <string>
 #include <gst/gst.h>
 
-
-
 class InternetRadio {
     public:
         InternetRadio(std::string uri);
@@ -16,6 +14,7 @@ class InternetRadio {
         std::string getLocation();
         std::string getTitle();
     private:
+	GstState m_state;
         GstElement* m_playbin;
         std::string m_title;
         std::string m_orgainzation;
@@ -27,6 +26,7 @@ class InternetRadio {
                 gpointer instance);
         void handle_tags(GstTagList* tags);
 
+        void setState(GstState state) { m_state = state; }
         void setOrganization(std::string organization) {
             m_orgainzation = organization;
         }
@@ -40,15 +40,13 @@ InternetRadio::InternetRadio(std::string uri) : m_playbin(NULL),
     m_title("[unkown]"), m_orgainzation("[unkown]"), m_bufferFill(0)
 {
     // Setup stream
-    //std::cout << "Opening source " << uri << std::endl;
-    m_playbin = gst_element_factory_make("playbin", "play");
+    m_playbin = gst_element_factory_make("playbin", "InternetRadio");
     g_object_set( G_OBJECT(m_playbin), "uri", uri.c_str(), NULL );
 
     GstBus* bus = gst_pipeline_get_bus(GST_PIPELINE(m_playbin));
     gst_bus_add_watch(bus, bussCallBack, this);
     gst_object_unref(bus);
 
-    //std::cout << "Now playing: " << uri << std::endl;
     gst_element_set_state(m_playbin, GST_STATE_PLAYING);
 }
 
@@ -60,6 +58,7 @@ InternetRadio::~InternetRadio()
 
 static GMainLoop* loop;
 
+#if 0
 static void print_one_tag(const GstTagList* list, const gchar* tag, gpointer )
 {
     int num = gst_tag_list_get_tag_size(list, tag);
@@ -80,7 +79,7 @@ static void print_one_tag(const GstTagList* list, const gchar* tag, gpointer )
 
     }
 }
-#if 0
+
 static void handle_tags(GstTagList* tags)
 {
 }
@@ -98,7 +97,7 @@ static const gchar* tagListToString(GstTagList* tags, std::string tag)
 
 void InternetRadio::handle_tags(GstTagList* tags)
 {
-    gst_tag_list_foreach(tags, print_one_tag, NULL);
+    //gst_tag_list_foreach(tags, print_one_tag, NULL);
     if( gst_tag_exists("title") ) {
         setTitle(tagListToString(tags, "title"));
     }
@@ -134,17 +133,24 @@ gboolean InternetRadio::bussCallBack(GstBus*, GstMessage* msg, gpointer object)
                 break;
             case GST_MESSAGE_STREAM_STATUS:
                 {
+#if 0
                     GstStreamStatusType type;
                     GstElement* owner;
                     gst_message_parse_stream_status(msg, &type, &owner);
                     std::cout << "Stream status now " << type << std::endl;
+#endif
                 }
                 break;
+#if 1
             case GST_MESSAGE_STATE_CHANGED:
                 {
                     GstState oldState;
                     GstState newState;
                     gst_message_parse_state_changed(msg, &oldState, &newState, NULL);
+		    if(GST_OBJECT(radio->m_playbin) == msg->src) {
+			radio->setState(newState);
+			//std::cout << "Player is now " << gst_element_state_get_name(newState) << std::endl;
+		    }
 #if 0
                     std::cout << "State " << GST_OBJECT_NAME(msg->src) 
                         << " changed from "
@@ -155,21 +161,22 @@ gboolean InternetRadio::bussCallBack(GstBus*, GstMessage* msg, gpointer object)
 #endif
                 }
                 break;
+#endif
             case GST_MESSAGE_BUFFERING:
                 {
                     gint percent;
                     gst_message_parse_buffering(msg, &percent);
-                    radio->m_bufferFill = percent;
-
-                    std::cout << "Buffering: " << percent << "%" << std::endl;
+		    radio->setBufferFill(percent);
                 }
                 break;
             case GST_MESSAGE_DURATION:
                 {
+#if 0
                     GstFormat format;
                     gint64 duration;
                     gst_message_parse_duration(msg, &format, &duration);
                     std::cout << "Duration: " << format << "-" << duration << std::endl;
+#endif
 
                 }
                 break;
@@ -177,7 +184,7 @@ gboolean InternetRadio::bussCallBack(GstBus*, GstMessage* msg, gpointer object)
                 {
                     GstTagList* tags = NULL;
                     gst_message_parse_tag(msg, &tags);
-                    std::cout << "Tags: " << GST_OBJECT_NAME(msg->src) << std::endl;
+                    //std::cout << "Tags: " << GST_OBJECT_NAME(msg->src) << std::endl;
                     radio->handle_tags( tags );
                     gst_tag_list_free(tags);
                 }
