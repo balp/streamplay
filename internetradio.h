@@ -8,7 +8,7 @@ class InternetRadio {
     public:
         InternetRadio(std::string uri, GMainLoop* loop);
         ~InternetRadio();
-        const int getBufferFill() const {
+        int getBufferFill() const {
             return m_bufferFill;
         }
         const std::string getOrganization() const;

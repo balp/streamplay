@@ -61,8 +61,8 @@ int main(int argc, char** argv)
 
     // Start main loop
     {
-        InternetRadio radio(uri, loop);
         loop = g_main_loop_new(NULL, FALSE);
+        InternetRadio radio(uri, loop);
         g_main_loop_run(loop);
     }
 
